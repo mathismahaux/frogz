@@ -27,9 +27,13 @@
 
     var square;
     var spaceKey;
+    var leftKey;
+    var rightKey;
     var holdStart = 0;
     var maxHold = 1000;
     var isCharging = false;
+    var onGround = false;
+    var jumpDirection = 1;
 
     function preload ()
     {
@@ -65,25 +69,42 @@
         emitter.startFollow(square);
 
         spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+        leftKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
+        rightKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
     }
 
     function update ()
     {
+        if (isCharging) {
+            if (leftKey.isDown) {
+                jumpDirection = -1;
+            } else if (rightKey.isDown) {
+                jumpDirection = 1;
+            }
+        }
+
         if (spaceKey.isDown && !isCharging) {
             holdStart = this.time.now;
             isCharging = true;
             console.log("Charging...");
         }
 
+        if (square.y + square.height / 2 >= this.physics.world.bounds.bottom) {
+            onGround = true;
+        }
+
+        if (onGround) {
+            square.setVelocity(0, 0);
+        }
+
         if (isCharging && spaceKey.isUp) {
             var holdTime = Phaser.Math.Clamp(this.time.now - holdStart, 0, maxHold);
             var force = Phaser.Math.Linear(300, 800, holdTime / maxHold);
-            square.setVelocity(force, -force);
+            square.setVelocity(jumpDirection * force, -force);
+            onGround = false;
             isCharging = false;
-
         }
     }
     </script>
-
 </body>
 </html>
