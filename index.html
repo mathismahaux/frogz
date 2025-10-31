@@ -8,7 +8,7 @@
     <script>
     var config = {
         type: Phaser.AUTO,
-        width: 800,
+        width: 1300,
         height: 600,
         physics: {
             default: 'arcade',
@@ -45,7 +45,7 @@
 
     function create ()
     {
-        this.add.image(400, 300, 'sky');
+        this.add.tileSprite(0, 0, this.sys.game.config.width, this.sys.game.config.height, 'sky').setOrigin(0, 0);
 
         var particles = this.add.particles('red');
 
@@ -69,7 +69,26 @@
         square.body.setAllowGravity(true);
         square.body.setVelocity(0, 0);
 
-        platform = this.physics.add.staticImage(400, 400, null);
+        platform = this.physics.add.staticImage(325, 400, null);
+        platform.displayWidth = 200;
+        platform.displayHeight = 30;
+        platform.setOrigin(0.5, 0.5);
+
+        platform.body.setSize(platform.displayWidth, platform.displayHeight);
+        platform.body.setOffset(-platform.displayWidth / 2 + 15, 0);
+
+        var platformGraphics = this.add.graphics();
+        platformGraphics.fillStyle(0x00ff00, 1);
+        platformGraphics.fillRect(platform.x - platform.displayWidth / 2, platform.y - platform.displayHeight / 2, platform.displayWidth, platform.displayHeight);
+
+        this.physics.add.collider(square, platform, function (squareObj, platformObj) {
+            if (squareObj.body.touching.down && platformObj.body.touching.up) {
+                square.setVelocity(0, 0);
+                onGround = true;
+            }
+        });
+
+        platform = this.physics.add.staticImage(975, 400, null);
         platform.displayWidth = 200;
         platform.displayHeight = 30;
         platform.setOrigin(0.5, 0.5);
