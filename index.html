@@ -41,6 +41,8 @@
     var aimAngle = -90;
     var aimLength = 120;
     var aimGraphics;
+    var finishLine;
+    var finishReached = false;
 
     function preload ()
     {
@@ -76,7 +78,6 @@
 
     function create ()
     {
-//        this.add.tileSprite(0, 0, this.sys.game.config.width, this.sys.game.config.height, 'sky').setOrigin(0, 0);
         this.add.tileSprite(0, 0, WORLD_WIDTH, this.sys.game.config.height, 'sky').setOrigin(0, 0);
         this.cameras.main.setBounds(0, 0, WORLD_WIDTH, this.sys.game.config.height);
         this.physics.world.setBounds(0, 0, WORLD_WIDTH, this.sys.game.config.height);
@@ -107,6 +108,25 @@
         platform = makePlatform(this, 975, 400, 200, 30);
         platform = makePlatform(this, 1550, 400, 200, 30);
 
+        finishLine = this.physics.add.staticImage(WORLD_WIDTH - 40, 520, null);
+        finishLine.displayWidth = 40;
+        finishLine.displayHeight = 80;
+        finishLine.setOrigin(0.5, 0.5);
+        finishLine.body.setSize(finishLine.displayWidth, finishLine.displayHeight);
+        finishLine.body.setOffset(-finishLine.displayWidth / 2 + 15, -finishLine.displayHeight / 2 + 15);
+
+        var fg = this.add.graphics();
+        fg.fillStyle(0xffffff, 1);
+        fg.fillRect(finishLine.x - finishLine.displayWidth/2, finishLine.y - finishLine.displayHeight/2, finishLine.displayWidth, finishLine.displayHeight);
+
+        this.physics.add.overlap(square, finishLine, function (sq, f) {
+            if (!finishReached) {
+                finishReached = true;
+                console.log("Finish reached!");
+                // TODO: trigger level complete UI / transition here
+            }
+        }, null, this);
+
         emitter.startFollow(square);
 
         this.cameras.main.startFollow(square, true, 0.1, 0.1);
@@ -121,16 +141,6 @@
 
     function update ()
     {
-/*         
-        if (isCharging) {
-            if (leftKey.isDown) {
-                jumpDirection = -1;
-            } else if (rightKey.isDown) {
-                jumpDirection = 1;
-            }
-        } 
-*/
-
         if (onGround) {
             if (leftKey.isDown) {
                 aimAngle -= 1.8;
@@ -168,16 +178,6 @@
         if (onGround) {
             square.setVelocity(0, 0);
         }
-
-/*
-        if (isCharging && spaceKey.isUp) {
-            var holdTime = Phaser.Math.Clamp(this.time.now - holdStart, 0, maxHold);
-            var force = Phaser.Math.Linear(100, 600, holdTime / maxHold);
-            square.setVelocity(jumpDirection * force, -force);
-            onGround = false;
-            isCharging = false;
-        }
-*/
 
         if (isCharging && spaceKey.isUp) {
             var holdTime = Phaser.Math.Clamp(this.time.now - holdStart, 0, maxHold);
