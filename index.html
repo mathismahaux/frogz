@@ -43,6 +43,9 @@
     var aimGraphics;
     var finishLine;
     var finishReached = false;
+    var finishReached = false;
+    var completionText;
+    var resetKey;
 
     function preload ()
     {
@@ -124,6 +127,16 @@
                 finishReached = true;
                 console.log("Finish reached!");
                 // TODO: trigger level complete UI / transition here
+                completionText = this.add.text(window.innerWidth / 2, 100, 'Level Complete!\nPress R to Reset', {
+                    fontSize: '32px',
+                    fill: '#ffffff',
+                    align: 'center',
+                    backgroundColor: '#000000',
+                    padding: { x: 20, y: 20 }
+                });
+                completionText.setOrigin(0.5, 0.5);
+                completionText.setScrollFactor(0);
+                completionText.setDepth(2000);
             }
         }, null, this);
 
@@ -137,10 +150,25 @@
         spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
         leftKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT);
         rightKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT);
+        resetKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
     }
 
     function update ()
     {
+        if (finishReached && resetKey.isDown) {
+            finishReached = false;
+            square.x = 400;
+            square.y = 100;
+            square.setVelocity(0, 0);
+            onGround = false;
+            isCharging = false;
+            aimAngle = -90;
+            if (completionText) {
+                completionText.destroy();
+                completionText = null;
+            }
+        }
+        
         if (onGround) {
             if (leftKey.isDown) {
                 aimAngle -= 1.8;
