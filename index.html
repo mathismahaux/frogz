@@ -29,6 +29,7 @@
     var game = new Phaser.Game(config);
 
     var square;
+    var squareSize = 70;
     var spaceKey;
     var leftKey;
     var rightKey;
@@ -43,7 +44,6 @@
     var aimGraphics;
     var finishLine;
     var finishReached = false;
-    var finishReached = false;
     var completionText;
     var resetKey;
 
@@ -57,6 +57,7 @@
     {
         this.load.image('sky', 'assets/backgrounds/space3.png');
         this.load.image('red', 'assets/particles/red.png');
+        this.load.text('level1', 'level1.txt');
     }
 
     function makePlatform(scene, x, y, displayWidth, displayHeight) {
@@ -69,7 +70,8 @@
         p.setOrigin(0.5, 0.5);
 
         p.body.setSize(p.displayWidth, p.displayHeight);
-        p.body.setOffset(-p.displayWidth / 2 + 15, 0);
+        p.body.setOffset(-p.displayWidth / 2 + 15, -22);
+
 
         var g = scene.add.graphics();
         g.fillStyle(0x00ff00, 1);
@@ -83,6 +85,59 @@
         });
 
         return p;
+    }
+
+    function loadLevel(scene, levelData) {
+        console.log("Loading level with data:", levelData);
+        var lines = levelData.split('\n');
+        console.log("Lines:", lines.length, "First line length:", lines[0].length);
+        var tileWidth = WORLD_WIDTH / lines[0].length;
+        var tileHeight = scene.sys.game.config.height / lines.length;
+        console.log("Tile size:", tileWidth, "x", tileHeight);
+
+        for (var row = 0; row < lines.length; row++) {
+            var line = lines[row].trim();
+            for (var col = 0; col < line.length; col++) {
+                var char = line[col];
+                var x = col * tileWidth + tileWidth / 2;
+                var y = row * tileHeight + tileHeight / 2;
+
+                if (char === 'P') {
+                    makePlatform(scene, x, y, tileWidth, tileHeight);
+                } else if (char === 'F') {
+                    finishLine = scene.physics.add.staticImage(x, y, null);
+                    finishLine.displayWidth = tileWidth;
+                    finishLine.displayHeight = tileHeight;
+                    finishLine.setOrigin(0.5, 0.5);
+                    finishLine.body.setSize(finishLine.displayWidth, finishLine.displayHeight);
+                    finishLine.body.setOffset(-finishLine.displayWidth / 2 + 15, -finishLine.displayHeight / 2 + 15);
+
+                    var fg = scene.add.graphics();
+                    fg.fillStyle(0xffffff, 1);
+                    fg.fillRect(finishLine.x - finishLine.displayWidth/2, finishLine.y - finishLine.displayHeight/2, finishLine.displayWidth, finishLine.displayHeight);
+
+                    scene.physics.add.overlap(square, finishLine, function (sq, f) {
+                        if (!finishReached) {
+                            finishReached = true;
+                            console.log("Finish reached!");
+                            if (square && square.body) {
+                                square.setVelocity(0, 0);
+                                square.body.enable = false;
+                            }
+                            showEffectChoices(scene);
+                        }
+                    }, null, scene);
+                }
+            }
+        }
+    }
+
+    function clearLevel(scene) {
+        scene.physics.world.bodies.getBodies().forEach(function(body) {
+            if (body.gameObject && body.gameObject !== square) {
+                body.gameObject.destroy();
+            }
+        });
     }
 
     function sample(array, n) {
@@ -147,9 +202,9 @@
 
         var squareGraphics = this.add.graphics();
         squareGraphics.fillStyle(0xff0000, 1);
-        squareGraphics.fillRect(0, 0, 70, 70);
+        squareGraphics.fillRect(0, 0, squareSize, squareSize);
 
-        squareGraphics.generateTexture('square', 70, 70);
+        squareGraphics.generateTexture('square', squareSize, squareSize);
 
         squareGraphics.destroy();
 
@@ -159,42 +214,8 @@
         square.body.setAllowGravity(true);
         square.body.setVelocity(0, 0);
 
-        platform = makePlatform(this, 325, 400, 200, 30);
-        platform = makePlatform(this, 975, 400, 200, 30);
-        platform = makePlatform(this, 1550, 400, 200, 30);
-
-        finishLine = this.physics.add.staticImage(WORLD_WIDTH - 40, 520, null);
-        finishLine.displayWidth = 40;
-        finishLine.displayHeight = 80;
-        finishLine.setOrigin(0.5, 0.5);
-        finishLine.body.setSize(finishLine.displayWidth, finishLine.displayHeight);
-        finishLine.body.setOffset(-finishLine.displayWidth / 2 + 15, -finishLine.displayHeight / 2 + 15);
-
-        var fg = this.add.graphics();
-        fg.fillStyle(0xffffff, 1);
-        fg.fillRect(finishLine.x - finishLine.displayWidth/2, finishLine.y - finishLine.displayHeight/2, finishLine.displayWidth, finishLine.displayHeight);
-
-        this.physics.add.overlap(square, finishLine, function (sq, f) {
-            if (!finishReached) {
-                finishReached = true;
-                console.log("Finish reached!");
-/*                 completionText = this.add.text(window.innerWidth / 2, 100, 'Level Complete!\nPress R to Reset', {
-                    fontSize: '32px',
-                    fill: '#ffffff',
-                    align: 'center',
-                    backgroundColor: '#000000',
-                    padding: { x: 20, y: 20 }
-                });
-                completionText.setOrigin(0.5, 0.5);
-                completionText.setScrollFactor(0);
-                completionText.setDepth(2000); */
-                if (square && square.body) {
-                    square.setVelocity(0, 0);
-                    square.body.enable = false;
-                }
-                showEffectChoices(this);
-            }
-        }, null, this);
+        var levelData = this.cache.text.get('level1');
+        loadLevel(this, levelData);
 
         emitter.startFollow(square);
 
@@ -304,6 +325,7 @@
     {
         if (finishReached && resetKey.isDown) {
             finishReached = false;
+            squareSize = 70;
             square.x = 350;
             square.y = 100;
             square.setVelocity(0, 0);
@@ -323,6 +345,10 @@
             if (square && square.body) {
                 square.body.enable = true;
             }
+            // Reload level
+            clearLevel(this);
+            var levelData = this.cache.text.get('level1');
+            loadLevel(this, levelData);
         }
 
         if (onGround) {
