@@ -11,7 +11,7 @@
     var config = {
         type: Phaser.AUTO,
         width: window.innerWidth,
-        height: 600,
+        height: window.innerHeight,
         physics: {
             default: 'arcade',
             arcade: {
@@ -46,12 +46,13 @@
     var finishReached = false;
     var completionText;
     var resetKey;
-
+    var worldWidth;
     var effectsPool = [];
     var currentChoices = [];
     var choiceUI = null;
     var forceMultiplier = 1.0;
     var appliedEffects = [];
+    var levelGraphics = [];
 
     function preload ()
     {
@@ -70,12 +71,12 @@
         p.setOrigin(0.5, 0.5);
 
         p.body.setSize(p.displayWidth, p.displayHeight);
-        p.body.setOffset(-p.displayWidth / 2 + 15, -22);
-
+        p.body.setOffset(-p.displayWidth / 2 + 15, -39);
 
         var g = scene.add.graphics();
         g.fillStyle(0x00ff00, 1);
         g.fillRect(p.x - p.displayWidth / 2, p.y - p.displayHeight / 2, p.displayWidth, p.displayHeight);
+        levelGraphics.push(g);
 
         scene.physics.add.collider(square, p, function (squareObj, platformObj) {
             if (squareObj.body.touching.down && platformObj.body.touching.up) {
@@ -91,9 +92,14 @@
         console.log("Loading level with data:", levelData);
         var lines = levelData.split('\n');
         console.log("Lines:", lines.length, "First line length:", lines[0].length);
-        var tileWidth = WORLD_WIDTH / lines[0].length;
-        var tileHeight = scene.sys.game.config.height / lines.length;
+        // var tileWidth = WORLD_WIDTH / lines[0].length;
+        // var tileHeight = scene.sys.game.config.height / lines.length;
+        var tileWidth = window.innerHeight / 8;
+        var tileHeight = window.innerHeight / 8;
         console.log("Tile size:", tileWidth, "x", tileHeight);
+
+        var levelWidth = lines[0].length * tileWidth;
+        var levelHeight = lines.length * tileHeight;
 
         for (var row = 0; row < lines.length; row++) {
             var line = lines[row].trim();
@@ -115,6 +121,7 @@
                     var fg = scene.add.graphics();
                     fg.fillStyle(0xffffff, 1);
                     fg.fillRect(finishLine.x - finishLine.displayWidth/2, finishLine.y - finishLine.displayHeight/2, finishLine.displayWidth, finishLine.displayHeight);
+                    levelGraphics.push(fg);
 
                     scene.physics.add.overlap(square, finishLine, function (sq, f) {
                         if (!finishReached) {
@@ -138,6 +145,8 @@
                 body.gameObject.destroy();
             }
         });
+        levelGraphics.forEach(function(g) { g.destroy(); });
+        levelGraphics = [];
     }
 
     function sample(array, n) {
@@ -188,10 +197,6 @@
             }
         ];
 
-        this.add.tileSprite(0, 0, WORLD_WIDTH, this.sys.game.config.height, 'sky').setOrigin(0, 0);
-        this.cameras.main.setBounds(0, 0, WORLD_WIDTH, this.sys.game.config.height);
-        this.physics.world.setBounds(0, 0, WORLD_WIDTH, this.sys.game.config.height);
-
         var particles = this.add.particles('red');
 
         var emitter = particles.createEmitter({
@@ -200,21 +205,30 @@
             blendMode: 'ADD'
         });
 
+        var levelData = this.cache.text.get('level1');
+        var lines = levelData.split('\n');
+        var tileWidth = window.innerHeight / 8;
+        var tileHeight = window.innerHeight / 8;
+        var levelDims = {
+            width: lines[0].length * tileWidth,
+            height: lines.length * tileHeight
+        };
+
+        this.add.tileSprite(0, 0, levelDims.width, levelDims.height, 'sky').setOrigin(0, 0);
+        this.cameras.main.setBounds(0, 0, levelDims.width, levelDims.height);
+        this.physics.world.setBounds(0, 0, levelDims.width, levelDims.height);
+
         var squareGraphics = this.add.graphics();
         squareGraphics.fillStyle(0xff0000, 1);
         squareGraphics.fillRect(0, 0, squareSize, squareSize);
-
         squareGraphics.generateTexture('square', squareSize, squareSize);
-
         squareGraphics.destroy();
-
         square = this.physics.add.image(350, 100, 'square');
         square.setCollideWorldBounds(true);
         square.setImmovable(false);
         square.body.setAllowGravity(true);
         square.body.setVelocity(0, 0);
 
-        var levelData = this.cache.text.get('level1');
         loadLevel(this, levelData);
 
         emitter.startFollow(square);
