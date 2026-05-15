@@ -53,12 +53,20 @@
     var forceMultiplier = 1.0;
     var appliedEffects = [];
     var levelGraphics = [];
+    var levelKeys = ['level1', 'level2', 'level3'];
+var currentLevelKey;
 
     function preload ()
     {
         this.load.image('sky', 'assets/backgrounds/space3.png');
         this.load.image('red', 'assets/particles/red.png');
         this.load.text('level1', 'level1.txt');
+        this.load.text('level2', 'level2.txt');
+        this.load.text('level3', 'level3.txt');
+    }
+
+    function getRandomLevelKey() {
+        return levelKeys[Math.floor(Math.random() * levelKeys.length)];
     }
 
     function makePlatform(scene, x, y, displayWidth, displayHeight) {
@@ -89,17 +97,21 @@
     }
 
     function loadLevel(scene, levelData) {
-        console.log("Loading level with data:", levelData);
-        var lines = levelData.split('\n');
-        console.log("Lines:", lines.length, "First line length:", lines[0].length);
-        // var tileWidth = WORLD_WIDTH / lines[0].length;
-        // var tileHeight = scene.sys.game.config.height / lines.length;
-        var tileWidth = window.innerHeight / 8;
-        var tileHeight = window.innerHeight / 8;
-        console.log("Tile size:", tileWidth, "x", tileHeight);
+            if (!levelData) {
+                console.error('Missing level data for', currentLevelKey);
+                return;
+            }
 
-        var levelWidth = lines[0].length * tileWidth;
-        var levelHeight = lines.length * tileHeight;
+            levelData = levelData.replace(/\r/g, '').trim();
+            var lines = levelData.split('\n');
+
+            var tileWidth = window.innerHeight / 8;
+            var tileHeight = window.innerHeight / 8;
+            var levelWidth = lines[0].length * tileWidth;
+            var levelHeight = lines.length * tileHeight;
+
+            scene.cameras.main.setBounds(0, 0, levelWidth, levelHeight);
+            scene.physics.world.setBounds(0, 0, levelWidth, levelHeight);
 
         for (var row = 0; row < lines.length; row++) {
             var line = lines[row].trim();
@@ -140,7 +152,8 @@
     }
 
     function clearLevel(scene) {
-        scene.physics.world.bodies.getBodies().forEach(function(body) {
+        var bodies = scene.physics.world.bodies.entries.slice();
+        bodies.forEach(function(body) {
             if (body.gameObject && body.gameObject !== square) {
                 body.gameObject.destroy();
             }
@@ -205,7 +218,8 @@
             blendMode: 'ADD'
         });
 
-        var levelData = this.cache.text.get('level1');
+        currentLevelKey = getRandomLevelKey();
+        var levelData = this.cache.text.get(currentLevelKey);
         var lines = levelData.split('\n');
         var tileWidth = window.innerHeight / 8;
         var tileHeight = window.innerHeight / 8;
@@ -324,6 +338,16 @@
         appliedEffects.push(choice.id);
 
         destroyChoiceUI();
+        clearLevel(scene);
+
+        currentLevelKey = getRandomLevelKey();
+        var levelData = scene.cache.text.get(currentLevelKey);
+        if (!levelData) {
+            console.error('Failed to load level text for', currentLevelKey);
+            return;
+        }
+
+        loadLevel(scene, levelData);
 
         if (square && square.body) {
             square.body.enable = true;
@@ -359,10 +383,6 @@
             if (square && square.body) {
                 square.body.enable = true;
             }
-            // Reload level
-            clearLevel(this);
-            var levelData = this.cache.text.get('level1');
-            loadLevel(this, levelData);
         }
 
         if (onGround) {
